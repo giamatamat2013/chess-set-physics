@@ -103,7 +103,7 @@ def face_grooves(paths, w, depth, th, x0=0.0, z0=0.0):
     return out
 
 
-def cross_top(zb, post_h=10.0, arm=10.0, w=3.0):
+def cross_top(zb, post_h=10.0, arm=11.0, w=4.0):
     """King's cross; the arms rise from the post at under 50 degrees, so they print without supports."""
     za = zb + post_h - 4.5
     arms = Manifold.batch_hull([box(w, w, 0.4, z0=za - 3.0), box(arm, w, 3.0, z0=za)])
@@ -117,12 +117,15 @@ def pawn_classic():
     zc = 20.2  # collar top (local)
     body = revolve([(0, 0), (8.5, 0), (8.5, 1.0), (6.0, 3.0), (4.0, 10.0), (3.6, 14.4), (8.6, 19.4), (8.6, zc), (0, zc)])
     parts = [base, body.translate((0, 0, z0 - 0.01))]
-    Ro, rt, tilt = 8.4, 1.25, np.radians(35)
+    # the orbits run round the nucleus just inside its surface, so they are fused to it all the way
+    # round instead of standing as free arches (those would snap off)
+    Ro, rt, tilt, Rn = 7.2, 1.5, np.radians(35), 5.9
     hc = z0 + zc + Ro * np.sin(tilt) + rt - 0.25  # lowest point of every orbit sits on the collar
-    parts.append(cyl(hc - z0 - zc + 0.6, 3.2, z0=z0 + zc - 0.3))
-    parts.append(sphere(3.4, z=hc, seg=40))
-    for d in [(2.4, 0, 0), (-2.4, 0, 0), (0, 2.4, 0), (0, -2.4, 0), (0, 0, 2.4), (0, 0, -2.4)]:
-        parts.append(sphere(2.0, d[0], d[1], hc + d[2], seg=24))
+    parts.append(cyl(hc - z0 - zc + 0.6, 3.6, z0=z0 + zc - 0.3))
+    parts.append(sphere(Rn, z=hc, seg=48))
+    for k in range(7):  # protons and neutrons bulging out of the nucleus
+        a, el = np.radians(51.4 * k), np.radians(55 if k % 2 else 20)
+        parts.append(sphere(1.7, Rn * np.cos(el) * np.cos(a), Rn * np.cos(el) * np.sin(a), hc + Rn * np.sin(el), seg=20))
     t = np.linspace(0, 2 * np.pi, 49)
     for k in range(3):
         pts =np.stack([Ro * np.cos(t), Ro * np.sin(t) * np.cos(tilt), Ro * np.sin(t) * np.sin(tilt)], 1)
@@ -131,26 +134,26 @@ def pawn_classic():
         pts = pts @ rot.T + [0, 0, hc]
         parts.append(tube([tuple(p) for p in pts], rt, seg=16))
         top = np.array([0, Ro * np.cos(tilt), Ro * np.sin(tilt) + 0.35]) @ rot.T + [0, 0, hc]
-        parts.append(sphere(1.6, *top, seg=20))  # the electron, on top of its orbit
+        parts.append(sphere(1.9, *top, seg=20))  # the electron, on top of its orbit
     return union(parts)
 
 
 def pawn_quantum():
     """p orbital: two lobes meeting at the nucleus, marked with the + and - phase of the wave function."""
     base, z0 = dial_base(13.0, True)
-    zs, h, W, rw = 12.0, 10.5, 6.6, 2.4
+    zs, h, W, rw = 12.0, 10.5, 6.6, 3.0  # rw: waist radius at the node, thick enough not to snap
 
     def lobe(u):  # u = 0 at the far end of a lobe, 1 at the nucleus
         return W * np.sin(np.pi * u ** 0.75) ** 0.7
 
-    prof = [(0, 0), (8.5, 0), (8.5, 1.0), (6.0, 3.0), (4.0, 8.0), (3.2, zs)]
+    prof = [(0, 0), (8.5, 0), (8.5, 1.0), (6.0, 3.0), (4.6, 8.0), (3.9, zs)]  # stem thick enough not to snap
     for u in np.linspace(0.04, 1.0, 24):
-        prof.append((max(lobe(u), 3.2 if u < 0.3 else rw), zs + h * u))
+        prof.append((max(lobe(u), 3.9 if u < 0.3 else rw), zs + h * u))
     for u in np.linspace(0.0, 1.0, 25)[1:-1]:
         prof.append((max(lobe(1 - u), rw if u < 0.5 else 0.0), zs + h + h * u))
     prof.append((0, zs + 2 * h))
     m = base + revolve(prof).translate((0, 0, z0 - 0.01))
-    m = m + sphere(2.9, z=z0 + zs + h, seg=32)  # the nucleus at the node
+    m = m + sphere(3.5, z=z0 + zs + h, seg=32)  # the nucleus at the node
     cuts = []
     zp, zm = z0 + zs + h + h * (1 - 0.5 ** (4 / 3)), z0 + zs + h * 0.5 ** (4 / 3)
     for sy in (-1, 1):
@@ -242,7 +245,9 @@ def knight_head(quantum):
     ped_h = 2.5
     parts = [base, chamfer_slab(22, 13, ped_h + 0.3, 1.5, ch_top=0.6).translate((0, 0, z0 - 0.3))]
     zb, th, dx = z0 + ped_h - 0.3, 12.0, 2.0
-    head = to_xz(bevel_extrude(CrossSection([ccw(smooth_closed(KNIGHT_PTS, 6))]), th, bev=1.2), th)
+    # the throat widens toward the pedestal (widening downward needs no supports): a 3 mm neck would snap
+    outline = KNIGHT_PTS + [(-4.6, 10.0), (-6.5, 6.0), (-8.0, 2.5), (-8.5, -3.0)]
+    head = to_xz(bevel_extrude(CrossSection([ccw(smooth_closed(outline, 6))]), th, bev=1.2), th)
     parts.append((head ^ box(80, 40, 80, z0=0)).translate((dx, 0, zb)))
     for sy in (-1, 1):  # the eye
         parts.append(emb_xz(PSI if quantum else ATOM, 4.0, 1.6).translate((-5.8 + dx, sy * (th / 2 - 0.2), 33.0 + zb)))
@@ -256,7 +261,7 @@ def knight_classic():
     xc, za, ra = 3.0 + dx, 47.6 + zb, 2.8
     arch = [(xc, ra, za - 4.6), (xc, ra, za)] + [(xc, ra * np.cos(t), za + ra * np.sin(t)) for t in np.linspace(0, np.pi, 13)[1:-1]]
     arch += [(xc, -ra, za), (xc, -ra, za - 4.6)]
-    parts.append(tube(arch, 1.3, seg=16))
+    parts.append(tube(arch, 1.7, seg=16))
     x, z, s = back_path(44)
     parts.append(tube([(xi + dx + 0.6, 2.0 * np.sin(2 * np.pi * si / 12.0), zi + zb) for xi, zi, si in zip(x, z, s)], 1.7, seg=16))
     return union(parts) - union(cuts)
@@ -267,7 +272,7 @@ def knight_quantum():
     waves. The mane is quantised, a row of beads."""
     parts, cuts, zb, th, dx = knight_head(True)
     for sy in (-1, 1):
-        parts.append(rounded_box(2.0, 2.2, 9.0, 0.5, seg=10).translate((3.0 + dx, sy * 2.6, 42.5 + zb)))
+        parts.append(rounded_box(3.0, 3.0, 8.0, 0.6, seg=10).translate((3.0 + dx, sy * 2.6, 42.5 + zb)))
     x, z, s = back_path(18)
     for xi, zi in zip(x, z):
         parts.append(sphere(2.1, xi + dx + 0.6, 0, zi + zb, seg=20))
@@ -297,7 +302,7 @@ def bishop_classic():
     prism = (to_xz(bevel_extrude(tri, th, bev=1.2), th) ^ cone).translate((0, 0, zs - 0.3))
     rays = [[(-5.6, 5.2), (0.6, 6.2)]] + [[(0.6, 6.2), (8.5 * (1 - zz / 18) - 1.6, zz)] for zz in (3.2, 6.4, 9.6)]
     prism = prism - union(face_grooves(rays, 1.0, 0.8, th, 0.0, zs - 0.3))
-    med, reach = medallion(ATOM, 4.2, 3.2)
+    med, reach = medallion(ATOM, 4.2, 4.6)  # 3 mm coin: a thin coin snaps when pushed face-on
     apex = zs - 0.3 + 16.0
     return union([m, prism, med.translate((0, 0, apex + reach - 3.0))])
 
@@ -334,9 +339,9 @@ def queen_classic():
     """Electromagnetic wave: the electric and magnetic fields as two sine-shaped fins at right
     angles, climbing the body. A crown of photons and the atom emblem on top."""
     base, z0 = dial_base(16.5, False)
-    rcol, za, zb, A = 3.4, 10.0, 44.0, 7.5
-    body = revolve([(0, 0), (11, 0), (11, 1.6), (9.5, 3.5), (6.0, 7.0), (rcol, za), (rcol, 46.0),
-                    (9.6, 52.0), (9.6, 53.6), (0, 53.6)]).translate((0, 0, z0 - 0.01))
+    rcol, za, zb, A = 5.0, 10.0, 44.0, 8.5
+    body = revolve([(0, 0), (11, 0), (11, 1.6), (9.5, 3.5), (6.5, 7.0), (rcol, za), (rcol, 47.6),
+                    (9.6, 52.2), (9.6, 53.6), (0, 53.6)]).translate((0, 0, z0 - 0.01))
     lam = zb - za
     k = 2 * np.pi / lam
     fin_cs = None
@@ -352,8 +357,8 @@ def queen_classic():
     parts = [base, body, fin, fin.rotate((0, 0, 90))]
     zt = z0 + 53.6
     parts += queen_crown_top(zt)
-    med, reach = medallion(ATOM, 6.0, 3.4)
-    parts += [cyl(6.5, 1.6, z0=zt - 1.3), med.translate((0, 0, zt + 5.2))]
+    med, reach = medallion(ATOM, 6.0, 4.8)
+    parts += [cyl(6.5, 2.4, z0=zt - 1.3), med.translate((0, 0, zt + 5.2))]
     return union(parts)
 
 
@@ -361,18 +366,18 @@ def queen_quantum():
     """Double slit: a plane wave (rings) climbs the body to a wall with two slits; above it the
     bars of the interference pattern stand like a crown, brightest in the middle."""
     base, z0 = dial_base(16.5, True)
-    rcol = 4.2
-    body = revolve([(0, 0), (11, 0), (11, 1.6), (9.5, 3.5), (6.0, 7.0), (rcol, 10.0), (rcol, 40.0), (0, 40.0)])
+    rcol = 5.0
+    body = revolve([(0, 0), (11, 0), (11, 1.6), (9.5, 3.5), (6.5, 7.0), (rcol, 10.0), (rcol, 40.0), (0, 40.0)])
     body = body.translate((0, 0, z0 - 0.01)) - union([ring_groove(rcol, 0.5, 0.8, z0 + z) for z in np.arange(13.0, 38.0, 3.0)])
-    pt = 4.4
-    wall = CrossSection([ccw([(-4.0, 39.6), (4.0, 39.6), (9.5, 45.1), (9.5, 52.0), (-9.5, 52.0), (-9.5, 45.1)])])
+    pt = 6.4  # wall thickness: a thinner wall bends at the slits
+    wall =CrossSection([ccw([(-4.8, 39.6), (4.8, 39.6), (9.5, 44.3), (9.5, 52.0), (-9.5, 52.0), (-9.5, 44.3)])])
     wall = to_xz(Manifold.extrude(wall, pt), pt).translate((0, 0, z0))
     wall = wall - union([box(1.4, 10, 6.0, cx=sx * 2.2, z0=z0 + 44.5) for sx in (-1, 1)])
     parts = [base, body, wall]
     zt = z0 + 52.0 - 0.3
-    for x, hgt in zip((-7.2, -3.6, 0.0, 3.6, 7.2), (3.0, 6.5, 10.0, 6.5, 3.0)):
-        parts.append(box(2.4, 3.0, hgt, cx=x, z0=zt))
-        parts.append(sphere(1.5, x, 0, zt + hgt + 0.6, seg=20))
+    for x, hgt in zip((-7.2, -3.6, 0.0, 3.6, 7.2), (2.5, 5.5, 8.5, 5.5, 2.5)):  # bars 3.2 x 4.0: strong enough to grab
+        parts.append(box(3.2, 4.0, hgt, cx=x, z0=zt))
+        parts.append(sphere(1.6, x, 0, zt + hgt, seg=20))  # photon cap, half sunk: no neck under it
     return union(parts)
 
 
@@ -427,9 +432,9 @@ def king_quantum():
     parts.append(head)
     parts.append(tube([(0, 0, c), tuple(np.array([0, 0, c]) + d * (Rb - 0.4))], 1.2, seg=12))
     zr = c + Rb - 0.8
-    parts.append(cyl(5.0, 1.6, z0=zr))
-    parts.append(cross_top(zr + 4.0, post_h=9.0, arm=10.0))
-    parts.append(cyl(3.6, 2.4, 0.3, z0=zr + 4.0 + 9.0 - 0.3, seg=32))  # arrowhead: the |0> axis
+    parts.append(cyl(5.0, 2.6, z0=zr))  # the z axis: thick, it carries the cross
+    parts.append(cross_top(zr + 4.0, post_h=9.0))
+    parts.append(cyl(3.6, 2.8, 0.3, z0=zr + 4.0 + 9.0 - 0.3, seg=32))  # arrowhead: the |0> axis
     return union(parts)
 
 

@@ -50,7 +50,7 @@ All pieces stand on a round base. White bases have dial ticks; black bases have 
 - `quantum_pawn_p_orbital`: 8
 - `plate_classical_16_pieces`, `plate_quantum_16_pieces`: a whole side on one plate
 
-**Open source.** The generator is open source (Python and manifold3d): https://github.com/GIAMAT13/chess-set-Physics
+**Open source.** The generator is open source (Python and manifold3d): https://github.com/giamatamat2013/chess-set-physics
 
 ## Print settings
 
