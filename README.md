@@ -4,6 +4,29 @@ A template for making your own 3D-printable chess set. Drop a logo SVG into `ass
 
 It is the generator behind [chess-set-ai](https://github.com/GIAMAT13/chess-set-ai), with the finished models and brand logos taken out.
 
+## Physics set: classical vs quantum
+
+![Physics chess set](images/preview_physics.png)
+
+White plays classical physics, black plays quantum physics. Each piece type has the same height and outline on both sides.
+
+| Piece | White (classical) | Black (quantum) |
+|---|---|---|
+| King | gravity well with a planet | Bloch sphere (a qubit) |
+| Queen | electromagnetic wave (E and B fields) | double slit and its interference fringes |
+| Bishop | prism splitting light | Schrodinger's box, with cat ears |
+| Knight | horseshoe-magnet ear, wave mane | superposition: half smooth, half waves |
+| Rook | Tesla coil | quantum tunnelling through a barrier |
+| Pawn | atom with three orbits | p orbital with its + and - lobes |
+
+```bash
+python src/physics_set.py            # 12 pieces + 2 plates -> stl/physics/classical/ and stl/physics/quantum/
+python src/physics_set.py pawn king  # only some piece types (quicker while editing)
+python src/print_check.py physics/classical physics/quantum   # printability check
+```
+
+The pieces are written in `src/physics_set.py` with the same helpers as the AI set. All of them pass the print check: no supports, no thin necks, no thin walls. Store text is in `store/listing_physics.md`.
+
 ## Quick start
 
 Requires Python 3.10 or newer.
