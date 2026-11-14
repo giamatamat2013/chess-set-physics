@@ -22,10 +22,39 @@ White plays classical physics, black plays quantum physics. Each piece type has 
 ```bash
 python src/physics_set.py            # 12 pieces + 2 plates -> stl/physics/classical/ and stl/physics/quantum/
 python src/physics_set.py pawn king  # only some piece types (quicker while editing)
-python src/print_check.py physics/classical physics/quantum   # printability check
+python src/print_check.py physics/classical physics/quantum     # printability check (P1S)
+python src/strength_check.py physics/classical physics/quantum  # will it snap in play?
 ```
 
-The pieces are written in `src/physics_set.py` with the same helpers as the AI set. All of them pass the print check: no supports, no thin necks, no thin walls. Store text is in `store/listing_physics.md`.
+The pieces are written in `src/physics_set.py` with the same helpers as the AI set. Store text is in `store/listing_physics.md`.
+
+**Checks.** All 12 pieces pass both checks:
+
+- `print_check.py` (P1S): no supports, no thin necks, no thin walls.
+- `strength_check.py`: every layer is treated as a beam section, because a print is weakest between layers. The body takes a 10 N sideways push at the top, and every small feature (ears, crosses, crown spikes, bars) takes 3 N at its tip. The resulting stress is compared with PLA layer adhesion, taken low at 15 MPa, and must stay under half of it.
+
+### The board: a periodic table
+
+![Physics board](images/board_physics.png)
+
+Each of the 64 squares is an element, from H (1) on a1 to Gd (64) on h8, with its atomic number, symbol and name. White starts among the light elements and black among the heavy ones.
+
+The frame does not use a-h and 1-8:
+
+- **Files** are Standard Model particles: ν e μ γ H Z W τ. The photon γ is on the d file, where the queen (an EM wave) starts. The Higgs H is on the e file, under the king.
+- **Ranks** are a particle in a box: rank n shows the standing wave with n lobes.
+
+Squares are 40 mm, and the widest base (the king) is 35 mm. The board is 348 x 368 mm, so it prints as four quarters that join with dovetails (0.15 mm clearance).
+
+It is black and white with an AMS, and the top is completely flat:
+
+- Each quarter is two files, `*_white.stl` (the body) and `*_black.stl` (a 0.6 mm inlay).
+- In Bambu Studio, load both files of a quarter together and answer "Yes" to loading them as one object with several parts.
+- Then set the black part to the black filament.
+
+```bash
+python src/board.py   # -> stl/physics/board/, images/board_physics.png
+```
 
 ## Quick start
 
