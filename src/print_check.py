@@ -67,9 +67,11 @@ def inside_margin(pt, hull):
     return d
 
 
-def ray_hits(orig, dirs, tri, chunk=256):
+def ray_hits(orig, dirs, tri, chunk=None):
     """Distance to the nearest triangle along each ray (Moller-Trumbore), inf if none."""
     v0, e1, e2 = tri[:, 0], tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]
+    if chunk is None:  # keep each (rays x triangles x 3) array near 200 MB, so big plates fit in memory
+        chunk = int(np.clip(8_000_000 // max(len(tri), 1), 1, 256))
     out = np.full(len(orig), np.inf)
     for s in range(0, len(orig), chunk):
         o, d = orig[s:s + chunk, None, :], dirs[s:s + chunk, None, :]
