@@ -28,6 +28,7 @@ ROOT = globals().get("ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(
 FONT_PATH = r"C:\Windows\Fonts\arialbd.ttf"
 STL_DIR = os.path.join(ROOT, "stl", "physics")
 IMG_DIR = os.path.join(ROOT, "images", "physics_pieces")
+SCALE = 280.0 / 384.0  # pieces scaled with the 28 cm Higgs board (29.2 mm squares); applied on export
 rad = math.radians
 
 
@@ -919,7 +920,7 @@ def export_stl(objs, path):
     for o in objs:
         o.select_set(True)
     bpy.context.view_layer.objects.active = objs[0]
-    bpy.ops.wm.stl_export(filepath=path, export_selected_objects=True, global_scale=1.0, apply_modifiers=True,
+    bpy.ops.wm.stl_export(filepath=path, export_selected_objects=True, global_scale=SCALE, apply_modifiers=True,
                           ascii_format=False)
     bpy.ops.object.select_all(action="DESELECT")
 
@@ -935,7 +936,7 @@ def export_all():
     for i, kind in enumerate(order):
         src = bpy.data.objects[kind]
         cp = new_obj(f"plate_{i}", src.data, "plate")
-        cp.location = ((i % 4 - 1.5) * 38.0, (i // 4 - 1.5) * 38.0, 0)
+        cp.location = ((i % 4 - 1.5) * 38.0, (i // 4 - 1.5) * 38.0, 0)  # 27.7 mm apart after SCALE
         plate.append(cp)
     export_stl(plate, os.path.join(STL_DIR, "plate_16_pieces.stl"))
     delete(*plate)

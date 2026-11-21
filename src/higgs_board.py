@@ -25,13 +25,14 @@ from physics_set import strokes, write_stl
 from higgs_board_svg import END, FERMIONS, HB, PHI, SIDE, SQ, V_RING, mass_r
 
 W, D = 8 * SQ + 2 * SIDE, 8 * SQ + 2 * END
+S = 280.0 / D                                  # board is 28 cm long: the design is scaled in the plane
 T, INK = 6.0, 0.6
-LINE = 1.0                                     # ring and icon line width (>= 2 nozzle lines)
+LINE = 1.2                                     # line width as drawn; 0.87 mm after scaling (>= 2 nozzle lines)
 # --- connectors, as in chess-set-naama
 TAB_H, LIFT = 2.6, 0.2
 CLEAR = float(sys.argv[1]) if len(sys.argv) > 1 else 0.15
 NECK, HEAD, DEPTH = 14.0, 22.0, 12.0
-TAB_AT = (45.0, 125.0)                         # tab centres along each seam (scaled to this board)
+TAB_AT = (33.0, 91.0)                          # tab centres along each seam (real mm)
 OUT = os.path.join(ROOT, "stl", "physics", "board_higgs")
 
 
@@ -136,9 +137,9 @@ def region(sx, sy):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
-    outline = CrossSection.square((W - 8, D - 8), center=True).offset(4.0, JoinType.Round, 2.0, 48)
+    outline = CrossSection.square((W * S - 8, D * S - 8), center=True).offset(4.0, JoinType.Round, 2.0, 48)
     slab = extrude(outline, T, 0)
-    inlay = extrude(artwork(), INK + 1, T - INK) ^ slab
+    inlay = extrude(artwork().scale((S, S)), INK + 1, T - INK) ^ slab
     white = slab - inlay
     for (sx, sy), name in QUADS.items():
         reg = region(sx, sy)

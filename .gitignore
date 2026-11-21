@@ -8,3 +8,4 @@ venv/
 Thumbs.db
 # Slicer run output at the repo root (not read by any project code)
 /result.json
+.playwright-mcp/
